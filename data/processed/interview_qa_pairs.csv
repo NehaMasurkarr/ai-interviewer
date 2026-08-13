@@ -1,0 +1,5 @@
+interview_id,role,difficulty,question,answer,next_question
+interview_001,Data Scientist,Intermediate,Can you tell me about a machine learning project you have worked on?,I worked on a customer churn prediction project. I used Python and XGBoost to predict which customers were likely to cancel their subscriptions.,Why did you choose XGBoost for this problem?
+interview_001,Data Scientist,Intermediate,Why did you choose XGBoost for this problem?,"I compared logistic regression, random forest, and XGBoost. XGBoost produced the strongest F1 score during validation.",Why did you use F1 score instead of accuracy?
+interview_001,Data Scientist,Intermediate,Why did you use F1 score instead of accuracy?,"The dataset was highly imbalanced, so accuracy could be misleading. F1 score gave me a better measure of the balance between precision and recall.",How did you handle the class imbalance?
+interview_001,Data Scientist,Intermediate,How did you handle the class imbalance?,I experimented with class weights and SMOTE and compared their performance using cross-validation.,How did you make sure SMOTE was not causing the model to overfit?

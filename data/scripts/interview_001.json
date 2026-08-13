@@ -1,0 +1,47 @@
+{
+    "interview_id": "interview_001",
+    "role": "Data Scientist",
+    "difficulty": "Intermediate",
+    "conversation": [
+        {
+            "speaker": "Interviewer",
+            "text": "Can you tell me about a machine learning project you have worked on?"
+        },
+        {
+            "speaker": "Candidate",
+            "text": "I worked on a customer churn prediction project. I used Python and XGBoost to predict which customers were likely to cancel their subscriptions."
+        },
+        {
+            "speaker": "Interviewer",
+            "text": "Why did you choose XGBoost for this problem?"
+        },
+        {
+            "speaker": "Candidate",
+            "text": "I compared logistic regression, random forest, and XGBoost. XGBoost produced the strongest F1 score during validation."
+        },
+        {
+            "speaker": "Interviewer",
+            "text": "Why did you use F1 score instead of accuracy?"
+        },
+        {
+            "speaker": "Candidate",
+            "text": "The dataset was highly imbalanced, so accuracy could be misleading. F1 score gave me a better measure of the balance between precision and recall."
+        },
+        {
+            "speaker": "Interviewer",
+            "text": "How did you handle the class imbalance?"
+        },
+        {
+            "speaker": "Candidate",
+            "text": "I experimented with class weights and SMOTE and compared their performance using cross-validation."
+        },
+        {
+            "speaker": "Interviewer",
+            "text": "How did you make sure SMOTE was not causing the model to overfit?"
+        },
+        {
+            "speaker": "Candidate",
+            "text": "I applied SMOTE only to the training folds and evaluated performance on untouched validation data. I also compared precision, recall, and F1 score across folds."
+        }
+    ]
+}
