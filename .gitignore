@@ -14,6 +14,17 @@ __pycache__/
 # macOS
 .DS_Store
 
+# Local resumes and job descriptions
+data/resumes/
+data/jobs/
+
+# Generated/interview audio
+data/audio/
+*.wav
+*.mp3
+*.m4a
+*.webm
+
 # Generated datasets
 data/processed/*.csv
 
@@ -28,4 +39,4 @@ data/vector_store/
 
 # IDE
 .vscode/
-.idea/
+.idea/*_backup.py

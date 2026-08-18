@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 
 # ============================================================
@@ -11,19 +11,27 @@ def build_interviewer_prompt(
     current_question: str,
     candidate_answer: str,
     retrieved_examples: List[Dict],
+    interview_history: Optional[str] = None,
 ) -> str:
     """
     Build the prompt used by the LLM to generate the next
     interviewer question.
 
-    Retrieved interview sequences are used as examples of
-    how real/simulated interviews progressed in similar
-    situations. They should guide the model, not be copied.
+    The prompt combines:
+    - role and job description
+    - previous interview history
+    - current question and candidate answer
+    - retrieved historical interview examples
     """
 
     examples_text = format_retrieved_examples(
         retrieved_examples
     )
+
+    if not interview_history:
+        interview_history = (
+            "No previous interview questions have been asked."
+        )
 
     prompt = f"""
 You are an AI interviewer conducting a professional job interview.
@@ -36,6 +44,9 @@ ROLE:
 JOB DESCRIPTION:
 {job_description}
 
+PREVIOUS INTERVIEW HISTORY:
+{interview_history}
+
 CURRENT INTERVIEW QUESTION:
 {current_question}
 
@@ -47,9 +58,15 @@ SIMILAR HISTORICAL INTERVIEW EXAMPLES:
 
 INSTRUCTIONS:
 
-1. Carefully analyze the candidate's answer.
+1. Carefully analyze the candidate's current answer.
 
-2. Decide whether the best next question should:
+2. Consider the entire interview history before deciding
+   what to ask next.
+
+3. Do not repeat a question, topic, or competency that has
+   already been sufficiently covered in the interview.
+
+4. Decide whether the best next question should:
    - ask a relevant follow-up,
    - probe for more detail,
    - test technical depth,
@@ -57,24 +74,30 @@ INSTRUCTIONS:
    - clarify something vague,
    - or move naturally to another important competency.
 
-3. Use the historical examples only as context for how similar
-   interviews progressed.
+5. Prioritize useful follow-up questions when the candidate
+   mentions something that deserves deeper exploration.
 
-4. Do NOT blindly copy a historical next question.
+6. Use the historical examples only as context for how
+   similar interviews progressed.
 
-5. The next question must be appropriate for THIS candidate's
-   actual answer.
+7. Do NOT blindly copy a historical next question.
 
-6. Keep the question relevant to the role and job description.
+8. The next question must be appropriate for THIS candidate's
+   actual answer and previous interview responses.
 
-7. Avoid repeating a question that has effectively already
-   been answered.
+9. Keep the question relevant to the role and job description.
 
-8. Ask only ONE interview question.
+10. Ask only ONE interview question.
 
-9. Do not provide feedback, scoring, commentary, or explanation.
+11. Do not praise, evaluate, score, or provide feedback on
+    the candidate's answer.
 
-10. Return only the next interview question.
+12. Do not include introductory phrases such as:
+    "That's great", "Good answer", or
+    "That sounds like great experience."
+
+13. Return ONLY the interview question. Do not provide
+    commentary or explanation.
 
 NEXT INTERVIEW QUESTION:
 """
@@ -183,6 +206,26 @@ def main():
         },
     ]
 
+    interview_history = """
+Turn 1
+
+Question:
+Tell me about your experience with machine learning.
+
+Candidate Answer:
+I have built classification models using Python and
+scikit-learn.
+
+Turn 2
+
+Question:
+Tell me about one of those classification projects.
+
+Candidate Answer:
+I built a customer churn prediction model and evaluated
+it using precision, recall, and F1-score.
+""".strip()
+
     prompt = build_interviewer_prompt(
         role="Data Scientist",
         job_description=(
@@ -192,15 +235,15 @@ def main():
             "insights to stakeholders."
         ),
         current_question=(
-            "Tell me about your experience "
-            "with machine learning."
+            "Have you worked with deep learning?"
         ),
         candidate_answer=(
-            "I built classification models using Python "
-            "and scikit-learn. I also worked with "
-            "TensorFlow on a deep learning project."
+            "Yes. I built an image classification model "
+            "using TensorFlow and a convolutional "
+            "neural network."
         ),
         retrieved_examples=example_results,
+        interview_history=interview_history,
     )
 
     print(prompt)

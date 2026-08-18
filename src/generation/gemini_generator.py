@@ -1,10 +1,11 @@
 import os
+import time
 
 from dotenv import load_dotenv
 from google import genai
+from google.genai.errors import ServerError
 
 
-# Load variables from .env
 load_dotenv()
 
 api_key = os.getenv("GEMINI_API_KEY")
@@ -16,31 +17,63 @@ if not api_key:
     )
 
 
-# Create Gemini client
 client = genai.Client(api_key=api_key)
+
+MODEL_NAME = "gemini-3.5-flash"
+
+
+def generate_content_with_retry(
+    prompt: str,
+    max_retries: int = 3,
+) -> str:
+    """
+    Send a prompt to Gemini with retry handling for
+    temporary server errors such as 503 UNAVAILABLE.
+    """
+
+    for attempt in range(max_retries):
+
+        try:
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt,
+            )
+
+            if not response.text:
+                raise ValueError(
+                    "Gemini returned an empty response."
+                )
+
+            return response.text.strip()
+
+        except ServerError as error:
+
+            if attempt == max_retries - 1:
+                raise
+
+            wait_seconds = 2 ** attempt
+
+            print(
+                f"Gemini temporarily unavailable. "
+                f"Retrying in {wait_seconds} seconds..."
+            )
+
+            time.sleep(wait_seconds)
+
+    raise RuntimeError(
+        "Gemini request failed after retries."
+    )
 
 
 def generate_next_question(prompt: str) -> str:
     """
-    Send the RAG interviewer prompt to Gemini
-    and return the generated next interview question.
+    Generate the next interview question.
     """
 
-    response = client.models.generate_content(
-        model="gemini-3.5-flash",
-        contents=prompt,
-    )
-
-    if not response.text:
-        raise ValueError("Gemini returned an empty response.")
-
-    return response.text.strip()
+    return generate_content_with_retry(prompt)
 
 
 def main():
-    """
-    Simple test to verify that Gemini is connected correctly.
-    """
 
     test_prompt = """
 You are conducting a Data Scientist interview.

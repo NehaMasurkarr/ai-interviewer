@@ -1,31 +1,17 @@
 from src.generation.gemini_generator import generate_next_question
 from src.generation.prompt_builder import build_interviewer_prompt
+from src.memory.interview_memory import InterviewMemory
 from src.retrieval.retriever import InterviewRetriever
 
 
 class InterviewPipeline:
     """
-    End-to-end RAG interview pipeline.
-
-    Flow:
-
-        role + job description
-                +
-        current interview question
-                +
-        candidate answer
-                ↓
-        retrieve similar historical interviews
-                ↓
-        build RAG prompt
-                ↓
-        Gemini
-                ↓
-        next interview question
+    End-to-end RAG interview pipeline with session memory.
     """
 
     def __init__(self):
         self.retriever = InterviewRetriever()
+        self.memory = InterviewMemory()
 
     def generate_next_question(
         self,
@@ -36,7 +22,8 @@ class InterviewPipeline:
         top_k: int = 5,
     ) -> dict:
         """
-        Generate the next interview question using RAG.
+        Generate the next question while preserving
+        the interview history.
         """
 
         # --------------------------------------------------
@@ -51,7 +38,15 @@ class InterviewPipeline:
         )
 
         # --------------------------------------------------
-        # 2. Build the RAG prompt
+        # 2. Get interview history BEFORE adding current turn
+        # --------------------------------------------------
+
+        interview_history = self.memory.format_history(
+            max_turns=5
+        )
+
+        # --------------------------------------------------
+        # 3. Build RAG prompt
         # --------------------------------------------------
 
         prompt = build_interviewer_prompt(
@@ -60,10 +55,11 @@ class InterviewPipeline:
             current_question=current_question,
             candidate_answer=candidate_answer,
             retrieved_examples=retrieved_examples,
+            interview_history=interview_history,
         )
 
         # --------------------------------------------------
-        # 3. Send prompt to Gemini
+        # 4. Generate next question
         # --------------------------------------------------
 
         next_question = generate_next_question(
@@ -71,18 +67,35 @@ class InterviewPipeline:
         )
 
         # --------------------------------------------------
-        # 4. Return structured result
+        # 5. Store completed current turn in memory
+        # --------------------------------------------------
+
+        self.memory.add_turn(
+            question=current_question,
+            answer=candidate_answer,
+        )
+
+        # --------------------------------------------------
+        # 6. Return structured output
         # --------------------------------------------------
 
         return {
             "next_question": next_question,
             "retrieved_examples": retrieved_examples,
+            "history": self.memory.get_history(),
         }
+
+    def reset_interview(self) -> None:
+        """
+        Start a completely new interview session.
+        """
+
+        self.memory.clear()
 
 
 def main():
     """
-    End-to-end manual test.
+    Test a multi-turn interview.
     """
 
     pipeline = InterviewPipeline()
@@ -95,61 +108,86 @@ machine learning, Python, statistical modeling, deep learning,
 and communicating technical insights to stakeholders.
 """
 
-    current_question = (
+    # ========================================================
+    # TURN 1
+    # ========================================================
+
+    question_1 = (
         "Tell me about your experience with machine learning."
     )
 
-    candidate_answer = (
-        "I built classification models using Python and scikit-learn. "
-        "I also worked with TensorFlow on a deep learning project "
-        "for image classification."
+    answer_1 = (
+        "I built classification models using Python and "
+        "scikit-learn. I also worked with TensorFlow on "
+        "an image classification project."
     )
 
     print("\n" + "=" * 80)
-    print("RUNNING END-TO-END RAG INTERVIEW PIPELINE")
+    print("TURN 1")
     print("=" * 80)
 
-    result = pipeline.generate_next_question(
+    print("\nQUESTION:")
+    print(question_1)
+
+    print("\nANSWER:")
+    print(answer_1)
+
+    result_1 = pipeline.generate_next_question(
         role=role,
         job_description=job_description,
-        current_question=current_question,
-        candidate_answer=candidate_answer,
-        top_k=5,
+        current_question=question_1,
+        candidate_answer=answer_1,
     )
 
-    print("\nCURRENT QUESTION:")
-    print(current_question)
-
-    print("\nCANDIDATE ANSWER:")
-    print(candidate_answer)
+    question_2 = result_1["next_question"]
 
     print("\nGENERATED NEXT QUESTION:")
-    print(result["next_question"])
+    print(question_2)
+
+    # ========================================================
+    # TURN 2
+    # ========================================================
+
+    answer_2 = (
+        "The project classified medical images into multiple "
+        "categories. I used a convolutional neural network "
+        "in TensorFlow and evaluated it using precision, "
+        "recall, and F1-score."
+    )
 
     print("\n" + "=" * 80)
-    print("RETRIEVED HISTORICAL EXAMPLES")
+    print("TURN 2")
     print("=" * 80)
 
-    for index, example in enumerate(
-        result["retrieved_examples"],
-        start=1,
-    ):
-        print("\n" + "-" * 80)
-        print(f"EXAMPLE {index}")
+    print("\nQUESTION:")
+    print(question_2)
 
-        print("\nHistorical Question:")
-        print(example["question"])
+    print("\nANSWER:")
+    print(answer_2)
 
-        print("\nHistorical Answer:")
-        print(example["answer"])
+    result_2 = pipeline.generate_next_question(
+        role=role,
+        job_description=job_description,
+        current_question=question_2,
+        candidate_answer=answer_2,
+    )
 
-        print("\nHistorical Next Question:")
-        print(example["next_question"])
+    print("\nGENERATED NEXT QUESTION:")
+    print(result_2["next_question"])
 
-        print(
-            f"\nDistance: "
-            f"{example['distance']:.4f}"
+    # ========================================================
+    # Show stored memory
+    # ========================================================
+
+    print("\n" + "=" * 80)
+    print("INTERVIEW MEMORY")
+    print("=" * 80)
+
+    print(
+        pipeline.memory.format_history(
+            max_turns=10
         )
+    )
 
 
 if __name__ == "__main__":
